@@ -1,0 +1,104 @@
+---
+title: "Lab No.13"
+author: "Yuxuan Liu"
+date: "`r format(Sys.time(), '%d ,%m, %Y')`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.align = 'center')
+library(tidyverse)
+library(dslabs)
+library(lubridate)
+library(ggplot2)
+park <- read.csv("C:/Users/lyx48/Downloads/Lab11_parking.csv")
+book <- read.csv("C:/Users/lyx48/Downloads/Lab11_booking.csv")
+Lab11_roomrates <- read_csv("C:/Users/lyx48/Downloads/Lab11_roomrates.csv")
+```
+
+## 1.As you did in class, but with your new set of data, total up spending by corporation and report the biggest and smallest spenders inclusive of rooms and parking
+
+# For A company ,the Biggest expenditure is 2017-02-11	royalsuite, total pay 991.072.The min is 2020-10-13	economy,total pay 55.06117.For B company ,the Biggest expenditure is 2016-04-16	royalsuite, total pay 935.974.The min is 2015-11-26	economy	,total pay 50.16086.For C company ,the Biggest expenditure is 2017-09-04	royalsuite, total pay 1027.853.The min is 2020-10-13	economy,total pay 115.0612.For D company ,the Biggest expenditure is 2019-08-09	royalsuite, total pay 1149.903.The min is 2020-04-15	suite,total pay 59.01747.For E company ,the Biggest expenditure is 2018-08-25	royalsuite, total pay 1181.609.The min is 2019-03-17	economy,total pay 55.18778
+
+```{r q1}
+rate_clean <- gather(Lab11_roomrates,data_occupied,rate,-name)
+colnames(rate_clean) <- c('Room_use','date_occupied','rate')
+rate_clean$date_occupied <- dmy(rate_clean$date_occupied)
+
+book$date_occupied <- as.Date(book$date_occupied)
+
+Room <- gsub('price_','',rate_clean$Room_use)
+Room <- str_remove(Room,'_')
+
+rate_clean$Room <- Room
+
+room <- gsub('_room','',book$room_use)
+
+book$Room <- room
+
+sum(duplicated(rate_clean %>% dplyr::select(date_occupied, Room)))
+
+
+setdiff(book$date_occupied, rate_clean$date_occupied)
+
+
+revenue = book %>%
+  left_join(rate_clean, by = c('date_occupied','Room'))
+
+
+park_add <- data.frame(corp=c("D"),
+                       FreeParking=c("FALSE"))
+parkNEW <- rbind(park,park_add)
+
+total <- left_join(revenue,parkNEW,by='corp')
+
+total<- total %>% mutate(Year= format(total$date_occupied, format="%Y"))
+total<- total %>% mutate(Month= format(total$date_occupied, format="%m"))
+total <- total %>% mutate(parkfee = case_when(FreeParking == 'TRUE' ~ 0,FreeParking == 'FALSE' ~ 60))
+total <- total %>% mutate(TotExpenidture= parkfee + rate)
+
+
+A <- subset(total, corp == 'A')
+B<- subset(total, corp == 'B')
+C <- subset(total, corp == 'C')
+D <- subset(total, corp == 'D')
+E <- subset(total, corp == 'E')
+
+A[which.max(A$TotExpenidture),]
+A[which.min(A$TotExpenidture),]
+B[which.max(B$TotExpenidture),]
+B[which.min(B$TotExpenidture),]
+C[which.max(C$TotExpenidture),]
+C[which.min(C$TotExpenidture),]
+D[which.max(D$TotExpenidture),]
+D[which.min(D$TotExpenidture),]
+E[which.max(E$TotExpenidture),]
+E[which.min(E$TotExpenidture),]
+```
+
+The rest of your answer to the first question.
+
+\newpage
+## 2. Visualize (using ggplot) each corporation’s spending at the hotel over time and by roomtype. Make one plot with ggplot that shows this.
+
+### a. Suuestion text herebq
+
+```{r q2}
+ggplot(data=total,aes(x=date_occupied,y=TotExpenidture,color=Room))+geom_line()+facet_grid(corp~.)+labs(x="Date",y="Total Expenidture")
+
+```
+## 3.Visualize (using ggplot) the room rates over time by room type. Can you pick out one factor that determines when room prices are higher than usual? Note that we know each corporation gets the same room rate as the others on the same day, so this is about room rates, not corporate spending. Make two total plots, the first showing the room rates over time by room type, and the second explaining some feature of one of the room rates (e.g. when is the double room rate high? When is it low?). Using the month(...), day(...) or wday(..., label = TRUE) functions from lubridate will help with figuring out the patterns. Try exploring just one of the room types to start. You don’t have to perfectly analyze the room rate, just find one facet of the rate that changes regularly over time.
+
+### we can find that the Royal suit alwasy have the most expensive price and economy have the lowest one.Through the data we can find that in November(Because the is coming so people may decrease they travel )and May we have the lower value of economy  price and in December we have the highest price(may because the Christmas coming).
+
+
+```{r q3}
+ggplot(data=total,aes(x=date_occupied,y=TotExpenidture,color=Room))+geom_line()+labs(x="Date",y="Total Expenidture")
+
+economy <- subset(total,Room =='economy')
+ggplot(data=economy,aes(x=Month,y=TotExpenidture))+geom_line()+labs(x="Date",y="Total Expenidture")+facet_grid(Year~.)
+
+```

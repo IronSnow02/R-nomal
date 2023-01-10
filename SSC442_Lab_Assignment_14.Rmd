@@ -1,0 +1,83 @@
+---
+title: "Lab No.14"
+author: "Yuxuan Liu"
+date: "`r format(Sys.time(), '%d ,%m, %Y')`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r setup, include=TRUE}
+library(sf)
+library(mapview)
+library(tigris)
+library(tidycensus)
+library(tidyverse)
+library(tmaptools)
+
+
+```
+
+## 1. Text of the question copied here
+
+Write your answer here, before your code, or after your code. Just make sure your headers are correct.
+
+```{r q1}
+MI.counties = tigris::counties(state='MI', year = 2015, progress_bar = FALSE)
+ggplot(MI.counties, aes(fill = NAME) ) + 
+  geom_sf() + 
+  theme_minimal() + theme(legend.position = 'none')
+oakland_FIPS = MI.counties %>%
+  dplyr::filter(str_detect(NAME, 'Oakland')) %>%
+  dplyr::select(COUNTYFP, STATEFP) %>%
+  pull(COUNTYFP)
+
+oakland.tracts = tigris::tracts(state='MI', county = oakland_FIPS, year = 2015, progress_bar = FALSE)
+
+print(oakland.tracts %>% dplyr::select(TRACTCE, NAME, GEOID))
+
+
+```
+
+The rest of your answer to the first question.
+
+\newpage
+## 2. Text of Question 2 Copied Here
+
+### a. Subquestion text here
+
+```{r q2}
+ggplot(oakland.tracts, aes(fill = TRACTCE, col = (NAME=='9800'))) + 
+  geom_sf() + theme_minimal() + theme(legend.position = 'none') + scale_fill_viridis_d() +
+  scale_color_manual(values = c('TRUE' = 'green','FALSE' = 'gray50'))
+
+allvars = load_variables(2015, 'acs5')
+incvars = allvars %>%
+  dplyr::filter(str_detect(concept, 'MEDIAN INCOME'))
+
+
+tenvars = allvars %>%
+  dplyr::filter(str_detect(concept, 'TENURE'))
+
+okl.tenure = get_acs(geography = 'tract',
+                     county = '125', state = 'MI',
+                     variables = c(samehouse = 'B07013_004',
+                                   totalhouse = 'B07013_001',
+                                   medincome = 'B06011_001',
+                                   totalincome = 'B06010_003',
+                                   totalbron = 'B06001_013'),
+                     geometry = TRUE, output = 'wide', progress_bar = FALSE,
+                     year = 2015)
+
+okl.tenure = okl.tenure %>%
+  dplyr::mutate(percentincome = medincomeE/ totalincomeE) %>%
+  dplyr::select(GEOID, NAME, percentincome)
+
+
+
+ggplot(okl.tenure, aes(fill = percentincome)) + 
+  geom_sf() + theme_minimal() + scale_fill_viridis_c() +
+  labs(fill = 'percentincome')
+```
+
+
